@@ -3,6 +3,7 @@
 
 ( MACROS )
 %:DBG ( -- ) { print/newline [ LIT2 -T -System/debug ] DEO }
+%:HLT ( code - ) { .System/state DEO BRK }
 
 ( STRING MACROS 
 
@@ -30,7 +31,7 @@
 %\MAGENTA { \CSI \TRUE-COLOR "255;128;255 \TERMINATOR }
 
 ( DEVICES )
-|0e @System/debug $1
+|0e @System/debug $1 &state $1
 |18 @Console/write $1
 |20 @Screen [
 	&vector $2 
@@ -112,7 +113,6 @@
 %MUX ( a b sel -- out ) { JMP SWP NIP }
 %DMUX ( in sel -- a b ) { DUP2k EOR2 ROT EQU JMP SWP }
 
-@3and ( a b c -- out ) and !and
 @equ ( a b -- out ) xor !not
 @zero ( a b -- out ) POP2 .F JMP2r
 @one ( a b -- out ) POP2 .T JMP2r
@@ -158,23 +158,82 @@
 @and16 ( a* b* -- out* ) nand16 ( >> )
 @not16 ( a* -- out* ) DUP2 !nand16
 @or16 ( a* b* -- out* ) not16 SWP2 not16 !nand16
-@nor16 ( a* b* -- out* ) or16 !not16
-@xor16 ( a* b* -- out* ) 
-	OVR2 OVR2 not16 nand16 STH2 SWP2 not16 nand16 STH2r !nand16
-@equ16 ( a* b* -- out* ) 
-	OVR2 OVR2 not16 SWP2 not16 and16 STH2 and16 STH2r !or16
-@mux16 ( a* b* sel* -- out* ) DUP not STH and STH SWPr STHr and STHr !or
-@dmux16 ( sel -- a b ) 
-@zero16 ( a b -- out ) POP2 POP2 ;F16 JMP2r
-@one16 ( a b -- out ) POP2 POP2 ;T16 JMP2r
-@x16 ( x y -- out ) POP JMP2r
-@y16 ( x y -- out ) NIP JMP2r
-@not-y16 ( x y -- out ) NIP !not
-@not-x16 ( x y -- out ) POP !not
-@not-x-and-y16 ( x y -- out ) SWP ( >> )
-@x-and-not-y16 ( x y -- out ) not !and
-@if-x-then-y16 ( x y -- out ) SWP ( >> )
-@if-y-then-x16 ( x y -- out ) not !or
+
+@16bits/binary ( a* b* gate* -- out* )
+	STH2
+	[ LIT2r 0800 ]
+	&loop
+		DUP4 STHkr get/n_n nand ROT ROT
+		INCr GTHkr STHr ?/loop
+	POP2r
+	
+	!collect
+
+@16bits/unary
+
+%NOT16 ( a* -- out* ) { ;T16 EOR2 }
+%AND16 ( a* b* -- out* ) { AND2 }
+%OR16 ( a* b* -- oet* ) { ORA2 }
+
+@mux16 ( a* b* sel[0] -- out* )
+	DUP2 not16 STH2 and16 STH2 SWP2r STH2r and16 STH2r !or16
+@dmux16 ( in sel[0] -- a b ) OVR2 OVR2 and16 STH2 x-and-not-y16 STH2r JMP2r
+
+@x-and-not-y16 ( a* b* -- out* ) not16 !and16
+
+@or-8-way ( 7 6 5 4 3 2 1 0 -- out ) or or or or or or !or
+%OR-8-WAY ( in -- out ) { ;F-T ROT JMP POP NIP }
+
+@or16-8-way ( 7* 6* 5* 4* 3* 2* 1* 0* -- out* ) 
+	or16 or16 or16 or16 or16 or16 !or16
+@mux16-4-way ( a* b* c* d* sel[0..1]-- out* )
+	STHk get/0 mux16 ROT2 ROT2 STHr get/0 mux16 STHr get/1 !mux16
+	
+	
+@mux16-8-way ( a* b* c* d* e* f* g* h* sel[0..3] -- out* )
+	STHk get/0..1 mux16-4-way
+	STH2 ROTr STHkr get/0..1 mux16-4-way
+	ROTr ROTr STH2r STHr get/2 !mux16
+
+@DUP4 OVR2 OVR2 JMP2r
+@get ( in n ) 
+	DUP #00 EQU ?/0_
+	DUP #01 EQU ?/1_
+	DUP #02 EQU ?/2_
+	DUP #03 EQU ?/3_
+	DUP #04 EQU ?/4_
+	DUP #05 EQU ?/5_
+	DUP #06 EQU ?/6_
+	#07 EQU ?/7
+	#01 :HLT
+
+@get/n_n ( a b n -- a[n] b[n] ) STHk get SWP STHr get JMP2r  
+@get/0_ ( in[0..7] -- out[0] ) POP &0 #01 AND JMP2r
+@get/1_ ( in[0..7] -- out[0] ) POP &1 #02 AND #01 SFT JMP2r
+@get/0..1 ( sel [0..7] -- out[0..1] ) #03 AND JMP2r
+@get/2_ ( in[0..7] -- out[0] ) POP &2 #04 AND #02 SFT JMP2r
+@get/3_ ( in[0..7] -- out[0] ) POP &3 #08 AND #03 SFT JMP2r
+@get/4_ ( in[0..7] -- out[0] ) POP &4 #10 AND #04 SFT JMP2r
+@get/5_ ( in[0..7] -- out[0] ) POP &5 #20 AND #05 SFT JMP2r
+@get/6_ ( in[0..7] -- out[0] ) POP &6 #40 AND #06 SFT JMP2r
+@get/7 ( in[0..7] -- out[0] ) #80 AND #07 SFT JMP2r
+
+@set ( v in n ) #40 SFT STH SWP STHr SFT ORA JMP2r
+@collect ( 7 6 5 4 3 2 1 0 -- out ) 
+	[ LIT2r 0800 ] #00 
+	&loop 
+		STHkr set 
+		INCr GTHkr STHr ?/loop
+	POP2r JMP2r
+	
+@set/0 ( flag in[0..7] -- out[0..7] ) ORA JMP2r 
+@set/1 ( flag in[0..7] -- out[0..7] ) SWP #10 SFT ORA JMP2r 
+@set/2 ( flag in[0..7] -- out[0..7] ) SWP #20 SFT ORA JMP2r 
+@set/3 ( flag in[0..7] -- out[0..7] ) SWP #30 SFT ORA JMP2r 
+@set/4 ( flag in[0..7] -- out[0..7] ) SWP #40 SFT ORA JMP2r 
+@set/5 ( flag in[0..7] -- out[0..7] ) SWP #50 SFT ORA JMP2r 
+@set/6 ( flag in[0..7] -- out[0..7] ) SWP #60 SFT ORA JMP2r 
+@set/7 ( flag in[0..7] -- out[0..7] ) SWP #70 SFT ORA JMP2r 
 
 @DFF16 ( in -- out )
 
@@ -186,7 +245,6 @@
 	BRK
 	
 @Clock/tick ( -> )
-	#2a18 DEO
 	#010f DEO
 	( >> )
 	
@@ -209,8 +267,6 @@
 	POP JMP2r
 
 @test/summary ( -- )
-	print/newline
-	
 	,/failed LDR2 STH2k ORA ?{ 
 		;msgs/success print/string !/continue }
 
@@ -229,83 +285,118 @@
 
 @test/report ( total* str* -- ) print/string print/short-dec !print/newline
 @test/print-id ( -- )
+	,/current-set LDR2 LDA ?{ !/continue_ }
 	print/yellow
 	,/current-set LDR2 print/string
 	print/spacer
-	print/cyan
-	,/current-subset LDR2 print/string
-	!print/spacer
+
+	&continue_
+		,/current-subset LDR2 LDA ?{ !/end_ }
+		print/cyan
+		,/current-subset LDR2 print/string
+		!print/spacer
+		
+	&end_ JMP2r
 
 @test/set ( name* -- )
 	[ LIT2 &sets $2 ] INC2 ,/sets STR2
 	,/current-set STR2
-	/get-verbosity ?{
-		!print/newline }
 	JMP2r
 		&current-set $2
 
 @test/subset ( name* -- )
 	[ LIT2 &subsets $2 ] INC2 ,/subsets STR2
 	,/current-subset STR2
-	/get-verbosity ?{
-		!print/newline }
 	JMP2r
 		&current-subset $2
 
-@test/end-set ( -- ) ;msgs/null ,/current-set STR2 ( >> )
-@test/end-subset ( -- ) ;msgs/null ,/current-subset STR2 JMP2r
+@test/end-set ( -- ) ;msgs/null ,/current-set STR2 print/newline ( >> )
+@test/end-subset ( -- ) ;msgs/null ,/current-subset STR2 !print/newline
 
 @test/gates ( -- )
 	;msgs/gates /set
 		
 	;msgs/nand /subset	
-	#01 [ ;F-F nand .T EQU ] [ ;F-F NAND .T EQU ] EQU /assert
-	#02 [ ;F-T nand .T EQU ] [ ;F-T NAND .T EQU ] EQU /assert
-	#03 [ ;T-F nand .T EQU ] [ ;T-F NAND .T EQU ] EQU /assert
-	#04 [ ;T-T nand .F EQU ] [ ;T-T NAND .F EQU ] EQU /assert
-    
+	#01 [ ;F-F nand ] .T EQU /assert
+	#02 [ ;F-T nand ] .T EQU /assert
+	#03 [ ;T-F nand ] .T EQU /assert
+	#04 [ ;T-T nand ] .F EQU /assert
+
+	#05 [ ;F-F nand ] [ ;F-F NAND ] EQU /assert
+	#06 [ ;F-T nand ] [ ;F-T NAND ] EQU /assert
+	#07 [ ;T-F nand ] [ ;T-F NAND ] EQU /assert
+	#08 [ ;T-T nand ] [ ;T-T NAND ] EQU /assert
+	/end-subset
+
 	;msgs/and /subset
-		 ( a b )
 	#01 [ ;F-F and ] .F EQU /assert	
 	#02 [ ;F-T and ] .F EQU /assert
 	#03 [ ;T-F and ] .F EQU /assert
 	#04 [ ;T-T and ] .T EQU /assert
+
+	#05 [ ;F-F and ] [ ;F-F AND ] EQU /assert
+	#06 [ ;F-T and ] [ ;F-T AND ] EQU /assert
+	#07 [ ;T-F and ] [ ;T-F AND ] EQU /assert
+	#08 [ ;T-T and ] [ ;T-T AND ] EQU /assert
+	/end-subset
     
 	;msgs/not /subset
-         ( a )
 	#01 [ .F not ] .T EQU /assert
 	#02 [ .T not ] .F EQU /assert
+
+	#01 [ .F not ] [ .F NOT ] EQU /assert
+	#02 [ .T not ] [ .T NOT ] EQU /assert
+	/end-subset
     
 	;msgs/or /subset
-         ( a b )
 	#01 [ ;F-F or ] .F EQU /assert
 	#02 [ ;F-T or ] .T EQU /assert
 	#03 [ ;T-F or ] .T EQU /assert
 	#04 [ ;T-T or ] .T EQU /assert
+
+	#05 [ ;F-F or ] [ ;F-F OR ] EQU /assert
+	#06 [ ;F-T or ] [ ;F-T OR ] EQU /assert
+	#07 [ ;T-F or ] [ ;T-F OR ] EQU /assert
+	#08 [ ;T-T or ] [ ;T-T OR ] EQU /assert
+    /end-subset
     
 	;msgs/xor /subset
-         ( a b )
 	#01 [ ;F-F xor ] .F EQU /assert
 	#02 [ ;F-T xor ] .T EQU /assert
 	#03 [ ;T-F xor ] .T EQU /assert
 	#04 [ ;T-T xor ] .F EQU /assert
-    
+
+	#05 [ ;F-F xor ] [ ;F-F XOR ] EQU /assert
+	#06 [ ;F-T xor ] [ ;F-T XOR ] EQU /assert
+	#07 [ ;T-F xor ] [ ;T-F XOR ] EQU /assert
+	#08 [ ;T-T xor ] [ ;T-T XOR ] EQU /assert
+	/end-subset
+	
 	;msgs/nor /subset
-         ( a b )
 	#01 [ ;F-F nor ] .T EQU /assert
 	#02 [ ;F-T nor ] .F EQU /assert
 	#03 [ ;T-F nor ] .F EQU /assert
 	#04 [ ;T-T nor ] .F EQU /assert
+
+	#05 [ ;F-F nor ] [ ;F-F NOR ] EQU /assert
+	#06 [ ;F-T nor ] [ ;F-T NOR ] EQU /assert
+	#07 [ ;T-F nor ] [ ;T-F NOR ] EQU /assert
+	#08 [ ;T-T nor ] [ ;T-T NOR ] EQU /assert
+	/end-subset
     
 	;msgs/equ /subset
-         ( a b )
 	#01 [ ;F-F equ ] .T EQU /assert
 	#02 [ ;F-T equ ] .F EQU /assert
 	#03 [ ;T-F equ ] .F EQU /assert
 	#04 [ ;T-T equ ] .T EQU /assert
+
+	#05 [ ;F-F equ ] [ ;F-F EQU ] EQU /assert
+	#06 [ ;F-T equ ] [ ;F-T EQU ] EQU /assert
+	#07 [ ;T-F equ ] [ ;T-F EQU ] EQU /assert
+	#08 [ ;T-T equ ] [ ;T-T EQU ] EQU /assert
+	/end-subset
     
 	;msgs/mux /subset
-         ( a b  s )
 	#01 [ ;F-F .F mux ] .F EQU /assert
 	#02 [ ;F-T .F mux ] .F EQU /assert
 	#03 [ ;T-F .F mux ] .T EQU /assert
@@ -314,77 +405,89 @@
 	#06 [ ;F-T .T mux ] .T EQU /assert
 	#07 [ ;T-F .T mux ] .F EQU /assert
 	#08 [ ;T-T .T mux ] .T EQU /assert
-    
+	
+   	#09 [ ;F-F .F mux ] [ ;F-F .F MUX ] EQU /assert
+   	#0a [ ;F-T .F mux ] [ ;F-T .F MUX ] EQU /assert
+   	#0b [ ;T-F .F mux ] [ ;T-F .F MUX ] EQU /assert
+   	#0c [ ;T-T .F mux ] [ ;T-T .F MUX ] EQU /assert
+   	#0d [ ;F-F .T mux ] [ ;F-F .T MUX ] EQU /assert
+   	#0e [ ;F-T .T mux ] [ ;F-T .T MUX ] EQU /assert
+   	#0f [ ;T-F .T mux ] [ ;T-F .T MUX ] EQU /assert
+   	#10 [ ;T-T .T mux ] [ ;T-T .T MUX ] EQU /assert
+	/end-subset
+	
 	;msgs/dmux /subset
-         ( a b )
 	#01 [ ;T-F dmux ] ;T-F EQU2 /assert
 	#02 [ ;F-T dmux ] ;F-F EQU2 /assert
 
+	#03 [ ;T-F dmux ] [ ;T-F DMUX ] EQU2 /assert
+	#04 [ ;F-T dmux ] [ ;F-F DMUX ] EQU2 /assert
+	/end-subset
+	
 	;msgs/x-and-not-y /subset
-         ( a b )
 	#01 [ ;F-F x-and-not-y ] .F EQU /assert
 	#02 [ ;F-T x-and-not-y ] .F EQU /assert
 	#03 [ ;T-F x-and-not-y ] .T EQU /assert
 	#04 [ ;T-T x-and-not-y ] .F EQU /assert
-    
+	/end-subset
+	
 	;msgs/not-x-and-y /subset
-         ( a b )
 	#01 [ ;F-F not-x-and-y ] .F EQU /assert
 	#02 [ ;F-T not-x-and-y ] .T EQU /assert
 	#03 [ ;T-F not-x-and-y ] .F EQU /assert
 	#04 [ ;T-T not-x-and-y ] .F EQU /assert
-
+	/end-subset
+	
 	;msgs/constant-0 /subset
-         ( a b )
 	#01 [ ;F-F zero ] .F EQU /assert
 	#02 [ ;F-T zero ] .F EQU /assert
 	#03 [ ;T-F zero ] .F EQU /assert
 	#04 [ ;T-T zero ] .F EQU /assert
-    
+	/end-subset
+	   
 	;msgs/constant-1 /subset
-         ( a b )
 	#01 [ ;F-F one ] .T EQU /assert
 	#02 [ ;F-T one ] .T EQU /assert
 	#03 [ ;T-F one ] .T EQU /assert
 	#04 [ ;T-T one ] .T EQU /assert
-    
+  	/end-subset
+  	
 	;msgs/x /subset
-         ( a b )
 	#01 [ ;F-F x ] .F EQU /assert
 	#02 [ ;F-T x ] .F EQU /assert
 	#03 [ ;T-F x ] .T EQU /assert
 	#04 [ ;T-T x ] .T EQU /assert
-    
+	/end-subset
+	   
 	;msgs/y /subset
-         ( a b )
 	#01 [ ;F-F y ] .F EQU /assert
 	#02 [ ;F-T y ] .T EQU /assert
 	#03 [ ;T-F y ] .F EQU /assert
 	#04 [ ;T-T y ] .T EQU /assert
-    
+	/end-subset
+	  
 	;msgs/not-x /subset
-         ( a b )
 	#01 [ ;F-F not-x ] .T EQU /assert
 	#02 [ ;F-T not-x ] .T EQU /assert
 	#03 [ ;T-F not-x ] .F EQU /assert
 	#04 [ ;T-T not-x ] .F EQU /assert
-    	
+	/end-subset
+	 	
 	;msgs/not-y /subset
-         ( a b )
 	#01 [ ;F-F not-y ] .T EQU /assert
 	#02 [ ;F-T not-y ] .F EQU /assert
 	#03 [ ;T-F not-y ] .T EQU /assert
 	#04 [ ;T-T not-y ] .F EQU /assert
-    	
+	/end-subset
+   	
 	;msgs/if-x-then-y /subset
-         ( a b )
 	#01 [ ;F-F if-x-then-y ] .T EQU /assert
 	#02 [ ;F-T if-x-then-y ] .T EQU /assert
 	#03 [ ;T-F if-x-then-y ] .F EQU /assert
 	#04 [ ;T-T if-x-then-y ] .T EQU /assert
-    	
+	/end-subset
+
 	;msgs/if-y-then-x /subset
-         ( a b )
 	#01 [ ;F-F if-y-then-x ] .T EQU /assert
 	#02 [ ;F-T if-y-then-x ] .F EQU /assert
 	#03 [ ;T-F if-y-then-x ] .T EQU /assert
@@ -395,16 +498,14 @@
 @test/chips ( -- )
 	;msgs/chips /set
 	;msgs/dff /subset
-         ( a id*   )
 	#01 [ .T #8000 DFF ] .F EQU /assert
 	#02 [ .F #8000 DFF ] .T EQU /assert
 	#03 [ .F #8000 DFF ] .F EQU /assert
 	#04 [ .T #8000 DFF ] .F EQU /assert
 	#05 [ .F #8000 DFF ] .T EQU /assert
-
+	
 	(
 	;msgs/srl /subset
-         ( a b )
 	#01 [ ;F-F .F srl ] ;F-T EQU2 /assert ( start )
 	#02 [ ;T-F .F srl ] ;T-F EQU2 /assert ( set )
 	#03 [ ;F-F .F srl ] ;T-F EQU2 /assert ( hold )
@@ -457,39 +558,39 @@
 
 ( STRINGS )		
 @msgs
-	&gates "GATES \0
-	&chips "CHIPS \0
-	&nand "NAND \0
-	&and "AND \0
-	&not "NOT \0
-	&or "OR \0
-	&nor "NOR \0
-	&equ "EQU \0
-	&xor "XOR \0
-	&mux "MUX \0
-	&dmux "DMUX \0
-	&x-and-not-y "X_&_!Y \0
-	&not-x-and-y "!X_&_Y \0
-	&constant-0 "ZERO \0
-	&constant-1 "ONE \0
-	&x "X \0
-	&y "Y \0
-	&not-x "!X \0
-	&not-y "!Y \0
-	&if-x-then-y "!X_|_Y \0
-	&if-y-then-x "X_|_!Y \0
+	&gates "Gates \0
+	&chips "Chips \0
+	&nand "Nand \0
+	&and "And \0
+	&not "Not \0
+	&or "Or \0
+	&nor "Nor \0
+	&equ "Equ \0
+	&xor "Xor \0
+	&mux "Mux \0
+	&dmux "DMux \0
+	&x-and-not-y "x \s "& \s "!y \0
+	&not-x-and-y "!x \s "& \s "y \0
+	&constant-0 "Zero \0
+	&constant-1 "One \0
+	&x "x \0
+	&y "y \0
+	&not-x "!x \0
+	&not-y "!y \0
+	&if-x-then-y "!x \s "| \s "y \0
+	&if-y-then-x "x \s "| \s "!y \0
 	&dff "DFF \0
 	&srl "SRL \0
-	&total-tests "TOTAL \s "TESTS: \s \0
-	&total-sets "TOTAL \s "SETS: \s \0
-	&total-subsets "TOTAL \s "SUBSETS: \s \0
+	&total-tests "Total \s "Tests: \t \0
+	&total-sets "Total \s "Sets: \t \0
+	&total-subsets "Total \s "Subsets: \t \0
 	&passed \GREEN "PASSED \RESET \n \0
 	&failed \RED "FAILED \RESET \n \0
-	&success "+ \s \GREEN "SUCCESS! \RESET \n \0
-	&total-passed "* \s \GREEN "TOTAL \s "PASSED \RESET ": \s \0
-	&total-failed "* \s \RED "TOTAL \s "FAILED \RESET ": \s \0
+	&success \GREEN "SUCCESS! \RESET \n \0
+	&total-passed \GREEN "Total \s "Passed \RESET ": \t \0
+	&total-failed \RED "Total \s "Failed \RESET ": \t \0
 	&everything-is-fine 
-		"+ \s \RED "EVERYTHING \s "IS \s "FINE! \RESET \s "🔥🐶☕🔥 \n \0
+		\RED "Everything \s "is \s "fine! \RESET \s "🔥🐶☕🔥 \n \0
 	&newline \n \0
 	&spacer \RESET ": \t \0
 	&cyan \CYAN \0
