@@ -1,0 +1,35 @@
+( STRINGS )		
+@msgs/gates "Gates \0
+	&chips "Chips \0
+	&nand "Nand \0
+	&and "And \0
+	&not "Not \0
+	&or "Or \0
+	&nor "Nor \0
+	&equ "Equ \0
+	&xor "Xor \0
+	&mux "Mux \0
+	&dmux "DMux \0
+	&x_and_not_y "x \s "& \s "!y \0
+	&not_x_and_y "!x \s "& \s "y \0
+	&constant-0 "Zero \0
+	&constant-1 "One \0
+	&x "x \0
+	&y "y \0
+	&not-x "!x \0
+	&not-y "!y \0
+	&if_x_then_y "!x \s "| \s "y \0
+	&if_y_then_x "x \s "| \s "!y \0
+	&dff "DFF \0
+	&srl "SRL \0
+
+	&newline \n \0
+	&spacer \RESET ": \t \0
+	&cyan \CYAN \0
+	&yellow \YELLOW \0
+	&magenta \MAGENTA \0
+	&green \GREEN \0
+	&red \RED \0
+	&reset \RESET \0
+	&null \0
+	

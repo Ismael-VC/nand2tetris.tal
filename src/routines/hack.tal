@@ -1,0 +1,13 @@
+|10 @BUS
+|4000 @RAM/SIZE
+|4e20 @ROM/START
+
+( STATE )
+|000 
+@REG
+	&A $2 
+	&D $2
+	&PC $2
+	
+( HACK RAM )
+|ROM/START @ROM $4000 @RAM

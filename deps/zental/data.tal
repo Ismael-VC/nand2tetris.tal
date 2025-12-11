@@ -1,0 +1,11 @@
+@msgs
+  &total-tests "Total \s "Tests: \t \0
+	&total-sets "Total \s "Sets: \t \0
+	&total-subsets "Total \s "Subsets: \t \0
+	&passed \GREEN "PASSED \RESET \n \0
+	&failed \RED "FAILED \RESET \n \0
+	&success \GREEN "SUCCESS! \RESET \n \0
+	&total-passed \GREEN "Total \s "Passed \RESET ": \t \0
+	&total-failed \RED "Total \s "Failed \RESET ": \t \0
+	&everything-is-fine 
+		\RED "Everything \s "is \s "fine! \RESET \s "🔥🐶☕🔥 \n \0

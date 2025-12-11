@@ -1,0 +1,36 @@
+( STDLIB  )
+@print/newline ( -- ) ;msgs/newline ( >> )
+@print/string ( zstr* -- ) LDAk #18 DEO INC2 LDAk ?/string POP2 JMP2r
+@print/magenta ( -- ) ;msgs/magenta !/string
+@print/green ( -- ) ;msgs/green !/string
+@print/red ( -- ) ;msgs/red !/string
+@print/yellow ( -- ) ;msgs/yellow !/string
+@print/cyan ( -- ) ;msgs/cyan !/string
+@print/reset ( -- ) ;msgs/reset !/string
+@print/spacer ( -- ) ;msgs/spacer !/string
+@print/short ( short* -- ) SWP /byte ( >> )
+@print/byte ( byte -- ) DUP #04 SFT /nibble ( >> )
+@print/nibble ( byte -- ) 
+	#0f AND DUP #09 GTH #27 MUL ADD [ LIT "0 ] ADD #18 DEO JMP2r
+	
+@print/short-dec ( short* -- )
+	#000a SWP2 [ LITr ff ]
+	&>get ( -- )
+		SWP2k DIV2k MUL2 SUB2 STH
+		POP OVR2 DIV2 ORAk ?&>get
+	POP2 POP2
+	&>put ( -- )
+		STHr INCk ?{ POP JMP2r }
+		[ LIT "0 ] ADD #18 DEO !&>put
+
+@print/byte-dec ( dec -- )
+	DUP #64 DIV /byte-num-try
+	DUP #0a DIV /byte-num-try
+	( >> )
+
+@print/byte-num ( num -- )
+	#0a DIVk MUL SUB [ LIT "0 ] ADD #18 DEO
+	JMP2r
+	&byte-num-try ( num -- )
+		DUP ?/byte-num
+		POP JMP2r

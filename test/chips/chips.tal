@@ -1,0 +1,18 @@
+@test/chips ( -- )
+	;msgs/chips /set
+	;msgs/dff /subset
+		#01 [ .T #8000 DFF ] .F EQU /assert
+		#02 [ .F #8000 DFF ] .T EQU /assert
+		#03 [ .F #8000 DFF ] .F EQU /assert
+		#04 [ .T #8000 DFF ] .F EQU /assert
+		#05 [ .F #8000 DFF ] .T EQU /assert
+	
+	(
+	;msgs/srl /subset
+	#01 [ ;F_F .F srl ] ;F_T EQU2 /assert ( start )
+	#02 [ ;T_F .F srl ] ;T_F EQU2 /assert ( set )
+	#03 [ ;F_F .F srl ] ;T_F EQU2 /assert ( hold )
+	#04 [ ;F_T .F srl ] ;F_T EQU2 /assert ( reset )
+	( #05 [ ;T_T .F srl ] .Error/SRL /assert-error ( forbiden ) ) )
+
+	!/end-set

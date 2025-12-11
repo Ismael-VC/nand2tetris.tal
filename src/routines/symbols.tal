@@ -1,0 +1,19 @@
+( ENUMERATIONS )
+@ClockSpeed [
+	|00 &fast+4 $1
+	|01 &fast+3 $1
+	|03 &fast+2 $1
+	|07 &fast+1 $1
+	|0f &normal $1
+	|1f &slow+1 $1
+	|3f &slow+2 $1
+	|7f &slow+3 $1
+	|ff &slow+4 $1 ]
+	
+( CONSTANTS )
+|00 @F @F16 $1 @T
+|ffff @T16
+|0000 @F_F
+|0001 @F_T
+|0100 @T_F
+|0101 @T_T

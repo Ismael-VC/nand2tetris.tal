@@ -1,0 +1,14 @@
+@DFF ( in id* -- out ) DUP2 LDA STH STA STHr JMP2r
+
+@Clock/speed-set ( Speed -- ) ,/speed STR JMP2r
+@Clock/timer ( -> )
+        [ LIT &time $1 ] INCk ,/time STR
+        [ LIT &speed $1 ] AND ?{
+                !/tick }
+        BRK
+
+@Clock/tick ( -> )
+    #000f DEO
+    ( >> )
+
+    &tock ( -> ) BRK

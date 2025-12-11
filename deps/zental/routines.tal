@@ -1,0 +1,128 @@
+( TESTS )
+@test/get_verbosity ( -- f ) [ LIT &verbose $1 ] #00 EQU JMP2r
+@test/set_verbosity ( f -- ) ,/verbose STR JMP2r
+@test/assert ( test-number flag -- )
+	?{ 
+		[ LIT2 &failed $2 ] INC2 ,/failed STR2
+		;msgs/failed !/result }
+	[ LIT2 &passed $2 ] INC2 ,/passed STR2
+	/get_verbosity ?{
+		;msgs/passed ( >> )
+	
+		&result ( test-number str* -- )
+			/print-id ROT print/magenta print/byte-dec 
+			;msgs/spacer print/string !print/string }
+	POP JMP2r
+
+@test/summary ( -- )
+	,/failed LDR2 STH2k ORA ?{ 
+		;msgs/success print/string !/continue }
+
+	STH2kr ;msgs/total-failed /report
+
+	&continue ( | failed* -- )
+		,/passed LDR2 STH2k ORA ?{ 
+			;msgs/everything-is-fine print/string }
+
+		STH2kr ;msgs/total-passed /report	
+		STH2r STH2r ADD2 ;msgs/total-tests /report
+		/get_verbosity ?{
+			,/sets LDR2 ;msgs/total-sets /report
+			,/subsets LDR2 ;msgs/total-subsets !/report }
+		JMP2r
+
+@test/report ( total* str* -- ) print/string print/short-dec !print/newline
+@test/print-id ( -- )
+	,/current-set LDR2 LDA ?{ !/continue_ }
+	print/yellow
+	,/current-set LDR2 print/string
+	print/spacer
+
+	&continue_
+		,/current-subset LDR2 LDA ?{ !/end_ }
+		print/cyan
+		,/current-subset LDR2 print/string
+		!print/spacer
+		
+	&end_ JMP2r
+
+@test/set ( name* -- )
+	[ LIT2 &sets $2 ] INC2 ,/sets STR2
+	,/current-set STR2
+	JMP2r
+		&current-set $2
+
+@test/subset ( name* -- )
+	[ LIT2 &subsets $2 ] INC2 ,/subsets STR2
+	,/current-subset STR2
+	JMP2r
+		&current-subset $2
+
+@test/end-set ( -- ) ;msgs/null ,/current-set STR2 print/newline ( >> )
+@test/end-subset ( -- ) ;msgs/null ,/current-subset STR2 !print/newline
+
+(
+test/test ( -- )
+	/set: [ "Test \0 ]
+
+	/subset: [ "Standard \0 ]
+	( assert true )
+	#01 [ #01 #01 EQU ] /assert
+	( assert false )
+	#02 [ #01 #01 NEQ ] /refute
+	( assert error )
+	#03 [ #01 #00 DIVs ] .ZeroDivision /failed
+	
+	/subset: [ "Messages \0 ]
+	( assert true with message )
+	#01 [#01 #01 EQU ] /assert: [ "True \0 ]
+	( assert false with message )
+	#02 [ #01 #02 EQU ] /refute: [ "False \0 ]
+	( assert error )
+	#03 [ #01 #00 DIVs ] /failed: [ "Error \0 ]
+	
+	/endset
+
+)	
+
+@assert ( -> ) test/assert BRK
+@refute
+
+(doc
+	@catch ( error:Error -- flag:Bool )
+	
+Catches an exception by error number, if catched returns F to be used along with
+unless blocks.
+
+# Arguments
+	- error: error number
+
+# Returns
+	- flag: F if catched T otherwise
+
+# Example
+	.Error throw 
+	.Error catch ?{
+		( | suppressed )
+		log/string: [ "Divisor \s "can't \s "be \s "zero. \n\0 ]
+		( | may be rethrown )
+		.Error throw }
+		( | last thrown exception exits with error code when a BRK is reached if
+		  | not caught )
+	BRK		
+)
+@catch ( error:Error -- flag:Bool ) #0f DEI NEQ ?{ #000f DEO #00 JMP2r } #01 JMP2r
+@catch/any ( -- flag:Bool ) #0f DEI ?{ #01 JMP2r } #000f DEO #00 JMP2r
+
+@DIVs ( a b -- c|Error/ZeroDivision )
+	DUP ?{ 
+		POP2 
+		.Error/Division ;/name_ throw  }
+	DIV JMP2r
+	&name_ [ "DIVs \n \0 ]
+
+( throw and detect later )
+@throw ( error -- ) .System/state DEO :DBG JMP2r
+@throw! ( error -> (exit) ) throw BRK
+@throw: ( error -- ) 
+

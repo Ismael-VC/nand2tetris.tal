@@ -1,0 +1,6 @@
+|100
+@on-reset ( -> )
+  ;Clock/timer .Screen/vector DEO2
+  .T test/set_verbosity
+  test
+	BRK

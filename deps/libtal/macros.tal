@@ -1,0 +1,28 @@
+( MACROS )
+%:DBG ( -- ) { ( print/newline ) [ LIT2 -T -System/debug ] DEO }
+%:HLT ( code - ) { .System/state DEO BRK }
+
+( STRING MACROS 
+
+  These are used to represent non printable ASCII characters in 
+  strings, all string macros begin with \ to emulate string
+  interpolation syntax. )
+%\n { 0a }  ( newline )
+%\t { 09 }  ( tab )
+%\0 { 00 }  ( null )
+%\s { 20 }  ( space )
+%\e { 1b }  ( escape )
+
+( ANSI ESCAPE CODES 
+
+  These are used to stylize the output. )
+%\CSI { \e "[ }
+%\TERMINATOR { "m }
+%\RESET { \CSI \TERMINATOR }
+%\TRUE_COLOR { "38;2; }
+                             ( R   G   B )
+%\GREEN   { \CSI \TRUE_COLOR "128;255;128 \TERMINATOR }
+%\RED     { \CSI \TRUE_COLOR "255;128;128 \TERMINATOR }
+%\CYAN    { \CSI \TRUE_COLOR "128;255;255 \TERMINATOR }
+%\YELLOW  { \CSI \TRUE_COLOR "255;255;128 \TERMINATOR }
+%\MAGENTA { \CSI \TRUE_COLOR "255;128;255 \TERMINATOR }

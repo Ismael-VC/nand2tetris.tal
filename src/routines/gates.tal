@@ -1,0 +1,141 @@
+( ## GATES 
+
+  ### Simple Gates
+
+  Simple gates are implemented as functions that accept boolean byte
+  values, .T 1 bit true (01) and .F false (00), although we only 
+  really need the zero-th bit. Uxn words are 8 bits and doubles are
+  16 bits. )
+@Nand ( a b -- out ) AND .F EQU JMP2r
+@And ( a b -- out ) Nand ( >> )
+@Not ( a -- out ) DUP !Nand
+@Or ( a b -- out ) Not SWP !if_x_then_y
+@Nor ( a b -- out ) Or !Not
+@Xor ( a b -- out ) DUP2 Not_x_And_y STH x_And_Not_y STHr !Or
+@Mux ( a b sel -- out ) DUP Not STH And STH SWPr STHr And STHr !Or
+@DMux ( in sel -- a b ) DUP2 And STH x_And_Not_y STHr JMP2r
+
+%NAND ( a b -- out ) { AND NOT }
+%NOT ( a -- out ) { .F EQU }
+%OR ( a b -- out ) { ORA }
+%NOR ( a b -- out ) { OR NOT }
+%XOR ( a b -- out ) { EOR }
+%MUX ( a b sel -- out ) { JMP SWP NIP }
+%DMUX ( in sel -- a b ) { DUP2k EOR2 ROT EQU JMP SWP }
+
+@Equ ( a b -- out ) Xor !Not
+@Zero ( a b -- out ) POP2 .F JMP2r
+@One ( a b -- out ) POP2 .T JMP2r
+@x ( x y -- out ) POP JMP2r
+@y ( x y -- out ) NIP JMP2r
+@Not_y ( x y -- out ) y !Not
+@Not_x ( x y -- out ) x !Not
+@x_And_Not_y ( x y -- out ) Not !And
+@Not_x_And_y ( x y -- out ) Not !Nor
+@if_x_then_y ( x y -- out ) Not !Nand
+@if_y_then_x ( x y -- out ) Not !Or
+
+%3AND ( a b c -- out ) { AND AND }
+%ZERO ( a b -- out ) { POP2 .F }
+%ONE ( a b -- out ) { POP2 .T }
+%X ( a b -- out ) { POP }
+%Y ( a b -- out ) { NIP }
+%NOT_X ( a b -- out ) { X NOT }
+%NOT_Y ( a b -- out ) { Y NOT }
+%x_and_not_y ( a b -- out ) { NOT AND }
+%not_x_and_y ( a b -- out ) { SWP x_and_not_y }
+%IF_X_THEN_Y ( a b -- out ) { NOT NAND }
+%IF_Y_THEN_X ( a b -- out ) { SWP if_x_then_y }
+ 
+( ### Multi-bit Gates
+
+  These are implemented using short (double word) mode opcodes, 
+  because Uxn has 64Kib of main RAM, using a byte to represent 
+  each bit would be a bad idea, we could also extract each bit and
+  iterate->apply to construct a result similar to the HDL language.
+  
+  However for implementation and performance reasons I thought it
+  was redundant and the API just implies working on n-bits, by 
+  generalization 16-bits. 
+
+  The inputs and outputs are 16-bits, 16-bits false ;F16 (0000) and 
+  16-bits true ;T16 (ffff). )
+@Nand16 ( a* b* -- out* ) AND2 ;T16 EOR2 JMP2r
+@And16 ( a* b* -- out* ) Nand16 ( >> )
+@Not16 ( a* -- out* ) DUP2 !Nand16
+@Or16 ( a* b* -- out* ) Not16 SWP2 Not16 !Nand16
+
+@16bits/binary ( a* b* gate* -- out* )
+	STH2
+	[ LIT2r 0800 ]
+	&loop
+		DUP4 STHkr get/n_n Nand ROT ROT
+		INCr GTHkr STHr ?/loop
+	POP2r
+	
+	!collect
+
+@16bits/unary
+
+%NOT16 ( a* -- out* ) { ;T16 EOR2 }
+%AND16 ( a* b* -- out* ) { AND2 }
+%OR16 ( a* b* -- oet* ) { ORA2 }
+
+@Mux16 ( a* b* sel[0] -- out* )
+	DUP2 Not16 STH2 And16 STH2 SWP2r STH2r And16 STH2r !Or16
+@DMux16 ( in sel[0] -- a b ) OVR2 OVR2 And16 STH2 x_and_not_y16 STH2r JMP2r
+
+@x_and_not_y16 ( a* b* -- out* ) Not16 !And16
+
+@Or8Way ( 7 6 5 4 3 2 1 0 -- out ) Or Or Or Or Or Or !Or
+%OR_8_WAY ( in -- out ) { ;F_T ROT JMP POP NIP }
+
+@Or8Way16 ( 7* 6* 5* 4* 3* 2* 1* 0* -- out* ) 
+	Or16 Or16 Or16 Or16 Or16 Or16 !Or16
+@Mux4Way16 ( a* b* c* d* sel[0..1]-- out* )
+	STHk get/0 Mux16 ROT2 ROT2 STHr get/0 Mux16 STHr get/1 !Mux16
+	
+@Mux8Way16 ( a* b* c* d* e* f* g* h* sel[0..3] -- out* )
+	STHk get/0..1 Mux4Way16
+	STH2 ROTr STHkr get/0..1 Mux4Way16
+	ROTr ROTr STH2r STHr get/2 !Mux16
+
+@DUP4 OVR2 OVR2 JMP2r
+@get ( in n ) 
+	DUP #00 EQU ?/0_
+	DUP #01 EQU ?/1_
+	DUP #02 EQU ?/2_
+	DUP #03 EQU ?/3_
+	DUP #04 EQU ?/4_
+	DUP #05 EQU ?/5_
+	DUP #06 EQU ?/6_
+	#07 EQU ?/7
+	#01 :HLT
+
+@get/n_n ( a b n -- a[n] b[n] ) STHk get SWP STHr get JMP2r  
+@get/0_ ( in[0..7] -- out[0] ) POP &0 #01 AND JMP2r
+@get/1_ ( in[0..7] -- out[0] ) POP &1 #02 AND #01 SFT JMP2r
+@get/0..1 ( sel [0..7] -- out[0..1] ) #03 AND JMP2r
+@get/2_ ( in[0..7] -- out[0] ) POP &2 #04 AND #02 SFT JMP2r
+@get/3_ ( in[0..7] -- out[0] ) POP &3 #08 AND #03 SFT JMP2r
+@get/4_ ( in[0..7] -- out[0] ) POP &4 #10 AND #04 SFT JMP2r
+@get/5_ ( in[0..7] -- out[0] ) POP &5 #20 AND #05 SFT JMP2r
+@get/6_ ( in[0..7] -- out[0] ) POP &6 #40 AND #06 SFT JMP2r
+@get/7 ( in[0..7] -- out[0] ) #80 AND #07 SFT JMP2r
+
+@set ( v in n ) #40 SFT STH SWP STHr SFT ORA JMP2r
+@collect ( 7 6 5 4 3 2 1 0 -- out ) 
+	[ LIT2r 0800 ] #00 
+	&loop 
+		STHkr set 
+		INCr GTHkr STHr ?/loop
+	POP2r JMP2r
+	
+@set/0 ( flag in[0..7] -- out[0..7] ) ORA JMP2r 
+@set/1 ( flag in[0..7] -- out[0..7] ) SWP #10 SFT ORA JMP2r 
+@set/2 ( flag in[0..7] -- out[0..7] ) SWP #20 SFT ORA JMP2r 
+@set/3 ( flag in[0..7] -- out[0..7] ) SWP #30 SFT ORA JMP2r 
+@set/4 ( flag in[0..7] -- out[0..7] ) SWP #40 SFT ORA JMP2r 
+@set/5 ( flag in[0..7] -- out[0..7] ) SWP #50 SFT ORA JMP2r 
+@set/6 ( flag in[0..7] -- out[0..7] ) SWP #60 SFT ORA JMP2r 
+@set/7 ( flag in[0..7] -- out[0..7] ) SWP #70 SFT ORA JMP2r 

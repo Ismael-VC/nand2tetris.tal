@@ -1,0 +1,33 @@
+( DEVICES )
+|0e @System/debug $1 &state $1
+|18 @Console/write $1
+|20 @Screen [
+	&vector $2 
+	&width $2 
+	&height $2 
+	&auto $2 
+	&x $2 
+	&y $2 
+	&addr $2 
+	&pixel $1 
+	&sprite $1 ]
+
+|00	@Error $1 ( generic ) [
+	&Division $1
+	&StackOverflow $1
+	&StackUnderflow $1
+	&Overflow $1 ( arithmetic )
+	&Value $1
+	&Assertion $1
+	&Index $1
+	&Memory $1
+	&Fork $1
+	&Child $1
+	&File $1
+	&Unimplemented $1
+	&Interrupt $1
+	&EOF $1
+	&Syntax $1
+	&Type $1
+	&Remote $1
+	&extend  ( |Error/extend @Error/Foo $1 ... ) ]

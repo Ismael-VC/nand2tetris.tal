@@ -1,0 +1,186 @@
+@test/gates ( -- )
+    ;msgs/gates /set
+        
+    ;msgs/nand /subset    
+        #01 [ ;F_F Nand ] .T EQU /assert
+        #02 [ ;F_T Nand ] .T EQU /assert
+        #03 [ ;T_F Nand ] .T EQU /assert
+        #04 [ ;T_T Nand ] .F EQU /assert
+
+        #05 [ ;F_F Nand ] [ ;F_F NAND ] EQU /assert
+        #06 [ ;F_T Nand ] [ ;F_T NAND ] EQU /assert
+        #07 [ ;T_F Nand ] [ ;T_F NAND ] EQU /assert
+        #08 [ ;T_T Nand ] [ ;T_T NAND ] EQU /assert
+    /end-subset
+
+    ;msgs/and /subset
+        #01 [ ;F_F And ] .F EQU /assert    
+        #02 [ ;F_T And ] .F EQU /assert
+        #03 [ ;T_F And ] .F EQU /assert
+        #04 [ ;T_T And ] .T EQU /assert
+
+        #05 [ ;F_F And ] [ ;F_F AND ] EQU /assert
+        #06 [ ;F_T And ] [ ;F_T AND ] EQU /assert
+        #07 [ ;T_F And ] [ ;T_F AND ] EQU /assert
+        #08 [ ;T_T And ] [ ;T_T AND ] EQU /assert
+    /end-subset
+    
+    ;msgs/not /subset
+        #01 [ .F Not ] .T EQU /assert
+        #02 [ .T Not ] .F EQU /assert
+
+        #01 [ .F Not ] [ .F NOT ] EQU /assert
+        #02 [ .T Not ] [ .T NOT ] EQU /assert
+    /end-subset
+    
+    ;msgs/or /subset
+        #01 [ ;F_F Or ] .F EQU /assert
+        #02 [ ;F_T Or ] .T EQU /assert
+        #03 [ ;T_F Or ] .T EQU /assert
+        #04 [ ;T_T Or ] .T EQU /assert
+
+        #05 [ ;F_F Or ] [ ;F_F OR ] EQU /assert
+        #06 [ ;F_T Or ] [ ;F_T OR ] EQU /assert
+        #07 [ ;T_F Or ] [ ;T_F OR ] EQU /assert
+        #08 [ ;T_T Or ] [ ;T_T OR ] EQU /assert
+    /end-subset
+    
+    ;msgs/xor /subset
+        #01 [ ;F_F Xor ] .F EQU /assert
+        #02 [ ;F_T Xor ] .T EQU /assert
+        #03 [ ;T_F Xor ] .T EQU /assert
+        #04 [ ;T_T Xor ] .F EQU /assert
+
+        #05 [ ;F_F Xor ] [ ;F_F XOR ] EQU /assert
+        #06 [ ;F_T Xor ] [ ;F_T XOR ] EQU /assert
+        #07 [ ;T_F Xor ] [ ;T_F XOR ] EQU /assert
+        #08 [ ;T_T Xor ] [ ;T_T XOR ] EQU /assert
+    /end-subset
+    
+    ;msgs/nor /subset
+        #01 [ ;F_F Nor ] .T EQU /assert
+        #02 [ ;F_T Nor ] .F EQU /assert
+        #03 [ ;T_F Nor ] .F EQU /assert
+        #04 [ ;T_T Nor ] .F EQU /assert
+
+        #05 [ ;F_F Nor ] [ ;F_F NOR ] EQU /assert
+        #06 [ ;F_T Nor ] [ ;F_T NOR ] EQU /assert
+        #07 [ ;T_F Nor ] [ ;T_F NOR ] EQU /assert
+        #08 [ ;T_T Nor ] [ ;T_T NOR ] EQU /assert
+    /end-subset
+    
+    ;msgs/equ /subset
+        #01 [ ;F_F Equ ] .T EQU /assert
+        #02 [ ;F_T Equ ] .F EQU /assert
+        #03 [ ;T_F Equ ] .F EQU /assert
+        #04 [ ;T_T Equ ] .T EQU /assert
+
+        #05 [ ;F_F Equ ] [ ;F_F EQU ] EQU /assert
+        #06 [ ;F_T Equ ] [ ;F_T EQU ] EQU /assert
+        #07 [ ;T_F Equ ] [ ;T_F EQU ] EQU /assert
+        #08 [ ;T_T Equ ] [ ;T_T EQU ] EQU /assert
+    /end-subset
+    
+    ;msgs/mux /subset
+        #01 [ ;F_F .F Mux ] .F EQU /assert
+        #02 [ ;F_T .F Mux ] .F EQU /assert
+        #03 [ ;T_F .F Mux ] .T EQU /assert
+        #04 [ ;T_T .F Mux ] .T EQU /assert
+        #05 [ ;F_F .T Mux ] .F EQU /assert
+        #06 [ ;F_T .T Mux ] .T EQU /assert
+        #07 [ ;T_F .T Mux ] .F EQU /assert
+        #08 [ ;T_T .T Mux ] .T EQU /assert
+    
+           #09 [ ;F_F .F Mux ] [ ;F_F .F MUX ] EQU /assert
+           #0a [ ;F_T .F Mux ] [ ;F_T .F MUX ] EQU /assert
+           #0b [ ;T_F .F Mux ] [ ;T_F .F MUX ] EQU /assert
+           #0c [ ;T_T .F Mux ] [ ;T_T .F MUX ] EQU /assert
+           #0d [ ;F_F .T Mux ] [ ;F_F .T MUX ] EQU /assert
+           #0e [ ;F_T .T Mux ] [ ;F_T .T MUX ] EQU /assert
+           #0f [ ;T_F .T Mux ] [ ;T_F .T MUX ] EQU /assert
+           #10 [ ;T_T .T Mux ] [ ;T_T .T MUX ] EQU /assert
+    /end-subset
+    
+    ;msgs/dmux /subset
+        #01 [ ;T_F DMux ] ;T_F EQU2 /assert
+        #02 [ ;F_T DMux ] ;F_F EQU2 /assert
+
+        #03 [ ;T_F DMux ] [ ;T_F DMUX ] EQU2 /assert
+        #04 [ ;F_T DMux ] [ ;F_F DMUX ] EQU2 /assert
+    /end-subset
+    
+    ;msgs/x_and_not_y /subset
+        #01 [ ;F_F x_And_Not_y ] .F EQU /assert
+        #02 [ ;F_T x_And_Not_y ] .F EQU /assert
+        #03 [ ;T_F x_And_Not_y ] .T EQU /assert
+        #04 [ ;T_T x_And_Not_y ] .F EQU /assert
+    /end-subset
+    
+    ;msgs/not_x_and_y /subset
+        #01 [ ;F_F Not_x_And_y ] .F EQU /assert
+        #02 [ ;F_T Not_x_And_y ] .T EQU /assert
+        #03 [ ;T_F Not_x_And_y ] .F EQU /assert
+        #04 [ ;T_T Not_x_And_y ] .F EQU /assert
+    /end-subset
+    
+    ;msgs/constant-0 /subset
+        #01 [ ;F_F Zero ] .F EQU /assert
+        #02 [ ;F_T Zero ] .F EQU /assert
+        #03 [ ;T_F Zero ] .F EQU /assert
+        #04 [ ;T_T Zero ] .F EQU /assert
+    /end-subset
+       
+    ;msgs/constant-1 /subset
+        #01 [ ;F_F One ] .T EQU /assert
+        #02 [ ;F_T One ] .T EQU /assert
+        #03 [ ;T_F One ] .T EQU /assert
+        #04 [ ;T_T One ] .T EQU /assert
+      /end-subset
+      
+    ;msgs/x /subset
+        #01 [ ;F_F x ] .F EQU /assert
+        #02 [ ;F_T x ] .F EQU /assert
+        #03 [ ;T_F x ] .T EQU /assert
+        #04 [ ;T_T x ] .T EQU /assert
+    /end-subset
+       
+    ;msgs/y /subset
+        #01 [ ;F_F y ] .F EQU /assert
+        #02 [ ;F_T y ] .T EQU /assert
+        #03 [ ;T_F y ] .F EQU /assert
+        #04 [ ;T_T y ] .T EQU /assert
+    /end-subset
+      
+    ;msgs/not-x /subset
+        #01 [ ;F_F Not_x ] .T EQU /assert
+        #02 [ ;F_T Not_x ] .T EQU /assert
+        #03 [ ;T_F Not_x ] .F EQU /assert
+        #04 [ ;T_T Not_x ] .F EQU /assert
+    /end-subset
+         
+    ;msgs/not-y /subset
+        #01 [ ;F_F Not_y ] .T EQU /assert
+        #02 [ ;F_T Not_y ] .F EQU /assert
+        #03 [ ;T_F Not_y ] .T EQU /assert
+        #04 [ ;T_T Not_y ] .F EQU /assert
+    /end-subset
+       
+    ;msgs/if_x_then_y /subset
+        #01 [ ;F_F if_x_then_y ] .T EQU /assert
+        #02 [ ;F_T if_x_then_y ] .T EQU /assert
+        #03 [ ;T_F if_x_then_y ] .F EQU /assert
+        #04 [ ;T_T if_x_then_y ] .T EQU /assert
+    /end-subset
+
+    ;msgs/if_y_then_x /subset
+        #01 [ ;F_F if_y_then_x ] .T EQU /assert
+        #02 [ ;F_T if_y_then_x ] .F EQU /assert
+        #03 [ ;T_F if_y_then_x ] .T EQU /assert
+        #04 [ ;T_T if_y_then_x ] .T EQU /assert
+
+    !/end-set
+
+@test ( -- )
+    /gates
+    /chips
+    !/summary
